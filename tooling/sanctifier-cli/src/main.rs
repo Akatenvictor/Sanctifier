@@ -73,6 +73,14 @@ fn main() {
 
             let mut analyzer = Analyzer::new(false);
             analyzer.ledger_limit = *limit;
+<<<<<<< HEAD
+=======
+            
+            let mut all_size_warnings = Vec::new();
+            let mut all_auth_gaps = Vec::new();
+            let mut all_panic_issues = Vec::new();
+            let mut all_unsafe_patterns = Vec::new();
+>>>>>>> 079bc40 (feat: implement 'Auth Gap' detector for Soroban contracts (#21))
 
             let mut all_size_warnings: Vec<SizeWarning> = Vec::new();
             let mut all_unsafe_patterns: Vec<UnsafePattern> = Vec::new();
@@ -81,6 +89,7 @@ fn main() {
             let mut all_arithmetic_issues: Vec<ArithmeticIssue> = Vec::new();
 
             if path.is_dir() {
+<<<<<<< HEAD
                 analyze_directory(
                     path,
                     &analyzer,
@@ -90,15 +99,22 @@ fn main() {
                     &mut all_panic_issues,
                     &mut all_arithmetic_issues,
                 );
+=======
+                analyze_directory(path, &analyzer, &mut all_size_warnings, &mut all_auth_gaps, &mut all_panic_issues, &mut all_unsafe_patterns);
+>>>>>>> 079bc40 (feat: implement 'Auth Gap' detector for Soroban contracts (#21))
             } else if path.extension().and_then(|s| s.to_str()) == Some("rs") {
                 if let Ok(content) = fs::read_to_string(path) {
                     all_size_warnings.extend(analyzer.analyze_ledger_size(&content));
+<<<<<<< HEAD
 
                     let patterns = analyzer.analyze_unsafe_patterns(&content);
                     for mut p in patterns {
                         p.snippet = format!("{}: {}", path.display(), p.snippet);
                         all_unsafe_patterns.push(p);
                     }
+=======
+                    
+>>>>>>> 079bc40 (feat: implement 'Auth Gap' detector for Soroban contracts (#21))
                     let gaps = analyzer.scan_auth_gaps(&content);
                     for g in gaps {
                         all_auth_gaps.push(format!("{}: {}", path.display(), g));
@@ -110,6 +126,7 @@ fn main() {
                         all_panic_issues.push(p_mod);
                     }
 
+<<<<<<< HEAD
                     let arith = analyzer.scan_arithmetic_overflow(&content);
                     for mut a in arith {
                         a.location = format!("{}: {}", path.display(), a.location);
@@ -118,6 +135,9 @@ fn main() {
                     if !is_json {
                         println!("Analysis complete for file: {:?}", path);
                     }
+=======
+                    all_unsafe_patterns.extend(analyzer.analyze_unsafe_patterns(&content));
+>>>>>>> 079bc40 (feat: implement 'Auth Gap' detector for Soroban contracts (#21))
                 }
             }
 
@@ -326,6 +346,7 @@ fn is_soroban_project(path: &Path) -> bool {
 }
 
 fn analyze_directory(
+<<<<<<< HEAD
     dir: &Path,
     analyzer: &Analyzer,
     all_size_warnings: &mut Vec<SizeWarning>,
@@ -333,11 +354,20 @@ fn analyze_directory(
     all_auth_gaps: &mut Vec<String>,
     all_panic_issues: &mut Vec<sanctifier_core::PanicIssue>,
     all_arithmetic_issues: &mut Vec<ArithmeticIssue>,
+=======
+    dir: &Path, 
+    analyzer: &Analyzer, 
+    all_size_warnings: &mut Vec<sanctifier_core::SizeWarning>, 
+    all_auth_gaps: &mut Vec<String>,
+    all_panic_issues: &mut Vec<sanctifier_core::PanicIssue>,
+    all_unsafe_patterns: &mut Vec<sanctifier_core::UnsafePattern>
+>>>>>>> 079bc40 (feat: implement 'Auth Gap' detector for Soroban contracts (#21))
 ) {
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
+<<<<<<< HEAD
                 analyze_directory(
                     &path,
                     analyzer,
@@ -347,6 +377,9 @@ fn analyze_directory(
                     all_panic_issues,
                     all_arithmetic_issues,
                 );
+=======
+                analyze_directory(&path, analyzer, all_size_warnings, all_auth_gaps, all_panic_issues, all_unsafe_patterns);
+>>>>>>> 079bc40 (feat: implement 'Auth Gap' detector for Soroban contracts (#21))
             } else if path.extension().and_then(|s| s.to_str()) == Some("rs") {
                 if let Ok(content) = fs::read_to_string(&path) {
                     let warnings = analyzer.analyze_ledger_size(&content);

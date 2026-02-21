@@ -36,6 +36,7 @@ pub struct PanicIssue {
     pub location: String,
 }
 
+<<<<<<< HEAD
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("invariant violation: {0}")]
@@ -73,6 +74,22 @@ pub struct Finding {
 }
 
 // ── Analyzer ──────────────────────────────────────────────────────────────────
+=======
+#[derive(Debug, Serialize, Clone)]
+pub struct UnsafePattern {
+    pub pattern_type: PatternType,
+    pub snippet: String,
+    pub line: usize,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub enum PatternType {
+    Panic,
+    Unwrap,
+    Expect,
+}
+
+>>>>>>> 079bc40 (feat: implement 'Auth Gap' detector for Soroban contracts (#21))
 pub struct Analyzer {
     pub strict_mode: bool,
     pub ledger_limit: usize,
@@ -85,31 +102,52 @@ impl Analyzer {
             ledger_limit: 64000, // Default 64 KB warning threshold
         }
     }
-
     pub fn scan_auth_gaps(&self, source: &str) -> Vec<String> {
         let file = match parse_str::<File>(source) {
             Ok(f) => f,
             Err(_) => return vec![],
         };
 
+<<<<<<< HEAD
+    pub fn scan_auth_gaps(&self, source: &str) -> Vec<String> {
+        let file = match parse_str::<File>(source) {
+            Ok(f) => f,
+            Err(_) => return vec![],
+        };
+
+=======
+>>>>>>> 079bc40 (feat: implement 'Auth Gap' detector for Soroban contracts (#21))
         let mut gaps = Vec::new();
 
         for item in file.items {
             if let Item::Impl(i) = item {
                 for impl_item in &i.items {
                     if let syn::ImplItem::Fn(f) = impl_item {
+<<<<<<< HEAD
                         let fn_name = f.sig.ident.to_string();
                         let mut has_mutation = false;
                         let mut has_auth = false;
                         self.check_fn_body(&f.block, &mut has_mutation, &mut has_auth);
                         if has_mutation && !has_auth {
                             gaps.push(fn_name);
+=======
+                        if let syn::Visibility::Public(_) = f.vis {
+                            let mut has_mutation = false;
+                            let mut has_auth = false;
+                            self.check_fn_body(&f.block, &mut has_mutation, &mut has_auth);
+                            if has_mutation && !has_auth {
+                                gaps.push(f.sig.ident.to_string());
+                            }
+>>>>>>> 079bc40 (feat: implement 'Auth Gap' detector for Soroban contracts (#21))
                         }
                     }
                 }
             }
         }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 079bc40 (feat: implement 'Auth Gap' detector for Soroban contracts (#21))
         gaps
     }
 
@@ -221,6 +259,11 @@ impl Analyzer {
                         self.check_expr(&init.expr, has_mutation, has_auth);
                     }
                 }
+                syn::Stmt::Macro(m) => {
+                    if m.mac.path.is_ident("require_auth") || m.mac.path.is_ident("require_auth_for_args") {
+                        *has_auth = true;
+                    }
+                }
                 _ => {}
             }
         }
@@ -246,7 +289,7 @@ impl Analyzer {
                 if method_name == "set" || method_name == "update" || method_name == "remove" {
                     // Heuristic: check if receiver chain contains "storage"
                     let receiver_str = quote::quote!(#m.receiver).to_string();
-                    if receiver_str.contains("storage") {
+                    if receiver_str.contains("storage") || receiver_str.contains("persistent") || receiver_str.contains("temporary") || receiver_str.contains("instance") {
                         *has_mutation = true;
                     }
                 }
@@ -339,6 +382,7 @@ impl Analyzer {
         visitor.patterns
     }
 
+<<<<<<< HEAD
     // ── Arithmetic overflow detection (NEW) ───────────────────────────────────
 
     /// Scans contract impl functions for unchecked arithmetic (`+`, `-`, `*`,
@@ -360,6 +404,8 @@ impl Analyzer {
     }
 
     // ── Size estimation helpers ───────────────────────────────────────────────
+=======
+>>>>>>> 079bc40 (feat: implement 'Auth Gap' detector for Soroban contracts (#21))
 
     fn estimate_struct_size(&self, s: &syn::ItemStruct) -> usize {
         let mut total = 0;
@@ -401,6 +447,47 @@ impl Analyzer {
     }
 }
 
+<<<<<<< HEAD
+=======
+struct UnsafeVisitor {
+    patterns: Vec<UnsafePattern>,
+}
+
+impl<'ast> Visit<'ast> for UnsafeVisitor {
+    fn visit_expr_method_call(&mut self, i: &'ast syn::ExprMethodCall) {
+        let method_name = i.method.to_string();
+        if method_name == "unwrap" || method_name == "expect" {
+            let pattern_type = if method_name == "unwrap" {
+                PatternType::Unwrap
+            } else {
+                PatternType::Expect
+            };
+            self.patterns.push(UnsafePattern {
+                pattern_type,
+                snippet: quote::quote!(#i).to_string(),
+                line: 0, // Simplified for now
+            });
+        }
+        visit::visit_expr_method_call(self, i);
+    }
+
+    fn visit_expr_macro(&mut self, i: &'ast syn::ExprMacro) {
+        if i.mac.path.is_ident("panic") {
+            self.patterns.push(UnsafePattern {
+                pattern_type: PatternType::Panic,
+                snippet: quote::quote!(#i).to_string(),
+                line: 0,
+            });
+        }
+        visit::visit_expr_macro(self, i);
+    }
+}
+
+pub trait SanctifiedGuard {
+    fn check_invariant(&self, env: &Env) -> Result<(), String>;
+}
+
+>>>>>>> 079bc40 (feat: implement 'Auth Gap' detector for Soroban contracts (#21))
 #[cfg(test)]
 mod tests {
     use super::*;
