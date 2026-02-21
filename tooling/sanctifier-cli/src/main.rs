@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 use colored::*;
 use std::path::{Path, PathBuf};
 use std::fs;
-use sanctifier_core::{Analyzer, SizeWarning, UnsafePattern, PatternType};
+use sanctifier_core::{Analyzer, ArithmeticIssue, SizeWarning, UnsafePattern, PatternType};
 
 #[derive(Parser)]
 #[command(name = "sanctifier")]
@@ -54,49 +54,40 @@ fn main() {
             let mut analyzer = Analyzer::new(false);
             analyzer.ledger_limit = *limit;
             
-            let mut all_size_warnings = Vec::new();
-            let mut all_unsafe_patterns = Vec::new();
-            let mut all_auth_gaps = Vec::new();
+            let mut all_size_warnings: Vec<SizeWarning> = Vec::new();
+            let mut all_unsafe_patterns: Vec<UnsafePattern> = Vec::new();
+            let mut all_auth_gaps: Vec<String> = Vec::new();
             let mut all_panic_issues = Vec::new();
+            let mut all_arithmetic_issues: Vec<ArithmeticIssue> = Vec::new();
 
-            println!("Debug: is_dir? {}, extension: {:?}", path.is_dir(), path.extension());
             if path.is_dir() {
-<<<<<<< HEAD
-                analyze_directory(path, &analyzer, &mut all_size_warnings, &mut all_unsafe_patterns, &mut all_auth_gaps);
-=======
-                analyze_directory(path, &analyzer, &mut all_warnings, &mut all_auth_gaps, &mut all_panic_issues);
->>>>>>> 713f0fc (feat: add static analysis check)
+                analyze_directory(path, &analyzer, &mut all_size_warnings, &mut all_unsafe_patterns, &mut all_auth_gaps, &mut all_panic_issues, &mut all_arithmetic_issues);
             } else if path.extension().and_then(|s| s.to_str()) == Some("rs") {
-                println!("Debug: Is a .rs file");
                 if let Ok(content) = fs::read_to_string(path) {
-<<<<<<< HEAD
-                    let size_warnings = analyzer.analyze_ledger_size(&content);
-                    all_size_warnings.extend(size_warnings.clone());
-                    
-                    let unsafe_patterns = analyzer.analyze_unsafe_patterns(&content);
-                    all_unsafe_patterns.extend(unsafe_patterns.clone());
+                    all_size_warnings.extend(analyzer.analyze_ledger_size(&content));
 
-=======
-                    all_warnings.extend(analyzer.analyze_ledger_size(&content));
-                    
->>>>>>> 713f0fc (feat: add static analysis check)
+                    let patterns = analyzer.analyze_unsafe_patterns(&content);
+                    for mut p in patterns {
+                        p.snippet = format!("{}: {}", path.display(), p.snippet);
+                        all_unsafe_patterns.push(p);
+                    }
                     let gaps = analyzer.scan_auth_gaps(&content);
                     for g in gaps {
                         all_auth_gaps.push(format!("{}: {}", path.display(), g));
                     }
-<<<<<<< HEAD
-                    println!("Found {} size warnings, {} unsafe patterns, and {} auth gaps in {:?}", size_warnings.len(), unsafe_patterns.len(), gaps.len(), path);
-                } else {
-                    println!("Debug: Failed to read file {:?}", path);
-=======
-
                     let panics = analyzer.scan_panics(&content);
                     for p in panics {
                         let mut p_mod = p.clone();
                         p_mod.location = format!("{}: {}", path.display(), p.location);
                         all_panic_issues.push(p_mod);
                     }
->>>>>>> 713f0fc (feat: add static analysis check)
+
+                    let arith = analyzer.scan_arithmetic_overflow(&content);
+                    for mut a in arith {
+                        a.location = format!("{}: {}", path.display(), a.location);
+                        all_arithmetic_issues.push(a);
+                    }
+                    println!("Analysis complete for file: {:?}", path);
                 }
             } else {
                 println!("Debug: Path neither dir nor .rs file");
@@ -109,6 +100,8 @@ fn main() {
                     "size_warnings": all_size_warnings,
                     "unsafe_patterns": all_unsafe_patterns,
                     "auth_gaps": all_auth_gaps,
+                    "panic_issues": all_panic_issues,
+                    "arithmetic_issues": all_arithmetic_issues,
                 });
                 println!("{}", serde_json::to_string_pretty(&output).unwrap_or_else(|_| "{}".to_string()));
             } else {
@@ -167,6 +160,22 @@ fn main() {
                 } else {
                     println!("\nNo panic/unwrap issues found.");
                 }
+
+                if !all_arithmetic_issues.is_empty() {
+                    println!("\n{} Found unchecked Arithmetic Operations!", "🔢".yellow());
+                    for issue in all_arithmetic_issues {
+                        println!(
+                            "   {} Function {}: Unchecked `{}` ({})",
+                            "->".red(),
+                            issue.function_name.bold(),
+                            issue.operation.yellow().bold(),
+                            issue.location
+                        );
+                        println!("      {} {}", "💡".blue(), issue.suggestion);
+                    }
+                } else {
+                    println!("\nNo arithmetic overflow risks found.");
+                }
             }
         },
         Commands::Report { output } => {
@@ -184,15 +193,6 @@ fn main() {
     }
 }
 
-<<<<<<< HEAD
-fn analyze_directory(
-    dir: &Path, 
-    analyzer: &Analyzer, 
-    all_size_warnings: &mut Vec<SizeWarning>,
-    all_unsafe_patterns: &mut Vec<UnsafePattern>,
-    all_auth_gaps: &mut Vec<String>
-) {
-=======
 fn is_soroban_project(path: &Path) -> bool {
     let cargo_toml_path = if path.is_dir() {
         path.join("Cargo.toml")
@@ -227,27 +227,20 @@ fn is_soroban_project(path: &Path) -> bool {
     }
 }
 
-<<<<<<< HEAD
-fn analyze_directory(dir: &Path, analyzer: &Analyzer, all_warnings: &mut Vec<sanctifier_core::SizeWarning>, all_auth_gaps: &mut Vec<String>) {
->>>>>>> 2010490 (feat: implement 'analyze' command scaffolding with Soroban project verification (#4))
-=======
 fn analyze_directory(
-    dir: &Path, 
-    analyzer: &Analyzer, 
-    all_warnings: &mut Vec<sanctifier_core::SizeWarning>, 
+    dir: &Path,
+    analyzer: &Analyzer,
+    all_size_warnings: &mut Vec<SizeWarning>,
+    all_unsafe_patterns: &mut Vec<UnsafePattern>,
     all_auth_gaps: &mut Vec<String>,
-    all_panic_issues: &mut Vec<sanctifier_core::PanicIssue>
+    all_panic_issues: &mut Vec<sanctifier_core::PanicIssue>,
+    all_arithmetic_issues: &mut Vec<ArithmeticIssue>,
 ) {
->>>>>>> 713f0fc (feat: add static analysis check)
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
-<<<<<<< HEAD
-                analyze_directory(&path, analyzer, all_size_warnings, all_unsafe_patterns, all_auth_gaps);
-=======
-                analyze_directory(&path, analyzer, all_warnings, all_auth_gaps, all_panic_issues);
->>>>>>> 713f0fc (feat: add static analysis check)
+                analyze_directory(&path, analyzer, all_size_warnings, all_unsafe_patterns, all_auth_gaps, all_panic_issues, all_arithmetic_issues);
             } else if path.extension().and_then(|s| s.to_str()) == Some("rs") {
                 if let Ok(content) = fs::read_to_string(&path) {
                     let warnings = analyzer.analyze_ledger_size(&content);
@@ -272,6 +265,12 @@ fn analyze_directory(
                         let mut p_mod = p.clone();
                         p_mod.location = format!("{}: {}", path.display(), p.location);
                         all_panic_issues.push(p_mod);
+                    }
+
+                    let arith = analyzer.scan_arithmetic_overflow(&content);
+                    for mut a in arith {
+                        a.location = format!("{}: {}", path.display(), a.location);
+                        all_arithmetic_issues.push(a);
                     }
                 }
             }
