@@ -40,6 +40,12 @@ impl LedgerSizeRule {
     }
 }
 
+impl Default for LedgerSizeRule {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SizeWarningLevel {
     ExceedsLimit,
