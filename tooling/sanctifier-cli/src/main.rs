@@ -12,7 +12,7 @@ pub mod vulndb;
 
 #[derive(Parser)]
 #[command(name = "sanctifier")]
-#[command(about = "Stellar Soroban Security & Formal Verification Suite", long_about = None)]
+#[command(version, about = "Stellar Soroban Security & Formal Verification Suite", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -28,6 +28,8 @@ pub enum Commands {
     Badge(commands::badge::BadgeArgs),
     /// Generate a Markdown or HTML security report
     Report(commands::report::ReportArgs),
+    /// Estimate gas / instruction costs for a contract source file or workspace
+    Gas(commands::gas::GasArgs),
     /// Detect potential storage key collisions in Soroban contracts
     Storage(commands::storage::StorageArgs),
     /// Initialize Sanctifier in a new project
@@ -58,6 +60,8 @@ pub enum Commands {
     Verify(commands::verify::VerifyArgs),
     /// Analyze an entire Cargo workspace (multiple contracts/libs)
     Workspace(commands::workspace::WorkspaceArgs),
+    /// Watch for file changes and auto-rerun analysis
+    Watch(commands::watch::WatchArgs),
 }
 
 fn main() {
@@ -72,6 +76,9 @@ fn run() -> anyhow::Result<()> {
     let log_output = match &cli.command {
         Commands::Analyze(args) if args.format == "json" => logging::LogOutput::Json,
         Commands::Diff(args) if args.format == "json" => logging::LogOutput::Json,
+        Commands::Gas(args) if args.format == commands::gas::OutputFormat::Json => {
+            logging::LogOutput::Json
+        }
         Commands::Storage(args) if args.format == commands::storage::OutputFormat::Json => {
             logging::LogOutput::Json
         }
@@ -90,6 +97,9 @@ fn run() -> anyhow::Result<()> {
         }
         Commands::Report(args) => {
             commands::report::exec(args)?;
+        }
+        Commands::Gas(args) => {
+            commands::gas::exec(args)?;
         }
         Commands::Storage(args) => {
             commands::storage::exec(args)?;
@@ -160,9 +170,6 @@ fn run() -> anyhow::Result<()> {
         Commands::Fix(args) => {
             commands::fix::exec(args)?;
         }
-        Commands::Fix(args) => {
-            commands::fix::exec(args)?;
-        }
         Commands::Update => {
             commands::update::exec()?;
         }
@@ -174,6 +181,9 @@ fn run() -> anyhow::Result<()> {
         }
         Commands::Workspace(args) => {
             commands::workspace::exec(args)?;
+        }
+        Commands::Watch(args) => {
+            commands::watch::exec(args)?;
         }
     }
 

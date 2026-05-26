@@ -36,7 +36,10 @@ interface LayoutNode extends CallGraphNode {
   y: number;
 }
 
-function layoutNodes(nodes: CallGraphNode[]): LayoutNode[] {
+function layoutNodes(nodes: CallGraphNode[] = []): LayoutNode[] {
+  if (!nodes || !Array.isArray(nodes)) {
+    return [];
+  }
   const functions = nodes.filter((n) => n.type === "function");
   const storages = nodes.filter((n) => n.type === "storage");
   const externals = nodes.filter((n) => n.type === "external");
@@ -68,7 +71,7 @@ export const CallGraph = memo(function CallGraph({ nodes, edges }: CallGraphProp
     return m;
   }, [layout]);
 
-  if (nodes.length === 0) {
+  if (!nodes || nodes.length === 0) {
     return (
       <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6">
         <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-4">
@@ -81,7 +84,7 @@ export const CallGraph = memo(function CallGraph({ nodes, edges }: CallGraphProp
     );
   }
 
-  const isLarge = nodes.length > RENDER_THRESHOLD;
+  const isLarge = nodes && nodes.length > RENDER_THRESHOLD;
   const shouldRender = !isLarge || showLargeGraph;
 
   const maxX = Math.max(...layout.map((n) => n.x)) + 180;
@@ -96,7 +99,7 @@ export const CallGraph = memo(function CallGraph({ nodes, edges }: CallGraphProp
   const externalCount = edges.filter((e) => e.type === "calls").length;
 
   return (
-    <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6">
+    <div data-testid="call-graph-container" className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6">
       <div className="flex flex-wrap justify-between items-start gap-2 mb-4">
         <div>
           <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
